@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 )
 
 func printErr(err error) {
@@ -71,9 +72,24 @@ func getStory(id int) story {
 }
 
 func topStoriesCommand(c *cli.Context) {
-	for idx, story_id := range getTopStories() {
-		story := getStory(story_id)
-		fmt.Printf("%v. %v\n", idx, story.Title)
+	count := c.Int("count")
+	story_ids := getTopStories()
+	if count > len(story_ids) {
+		count = len(story_ids)
+	}
+	stories := make([]story, count)
+	var wg sync.WaitGroup
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			stories[i] = getStory(story_ids[i])
+		}(i)
+	}
+
+	wg.Wait()
+	for i := 0; i < count; i++ {
+		fmt.Printf("%v. %v\n", i+1, stories[i].Title)
 	}
 }
 
@@ -89,6 +105,13 @@ func main() {
 			Name:   "top",
 			Usage:  "Show the top stories",
 			Action: topStoriesCommand,
+			Flags: []cli.Flag{
+				cli.IntFlag{
+					Name:  "count, n",
+					Usage: "the number of stories to get",
+					Value: 10,
+				},
+			},
 		},
 	}
 
