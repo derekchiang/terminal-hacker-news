@@ -73,6 +73,9 @@ func getStory(id int) story {
 
 func topStoriesCommand(c *cli.Context) {
 	count := c.Int("count")
+	if count == 0 {
+		count = 10
+	}
 	story_ids := getTopStories()
 	if count > len(story_ids) {
 		count = len(story_ids)
